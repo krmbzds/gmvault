@@ -18,6 +18,57 @@
 
 import os
 from setuptools import setup
+import distutils.cmd
+import distutils.log
+import subprocess
+import configparser
+from Jinja2 import Template
+
+class AddClientID(distutils.cmd.Command):
+    """Add in custom google client ID and secret"""
+
+    description = "Insert user's own google client ID and secret"
+    user_options = [
+        ('google-credentials-file=', None, 'Credentials file'),
+        ('google-client-id=', None, 'google-client-id'),
+        ('google-secret=', None, 'google-secret')]
+
+    def initialize_options(self):
+        self.google_client_id = None
+        self.google_secret = None
+        self.google_credentials_file = "credentials.txt"
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        """Add in the client ids to files"""
+
+        if self.google_credentials_file:
+            assert os.path.exists(self.google_credentials_file), ('Credentials file %s does not exist', self.google_credentials_file)
+            config = configparser.ConfigParser()
+            config.read(self.google_credentials_file)
+            self.google_client_id = config['DEFAULT']['client_id']
+            self.google_secret = config['DEFAULT']['secret']
+
+            self.jinjadict = {
+                'google_client_id': self.google_client_id,
+                'google_secret': self.google_secret
+            }
+        for f in ['src/gmv/credential_utils.tpy', 'src/gmv/gmvault_const.tpy']:
+            fhandler = open(f)
+            template = Template(fhandler.read())
+            fhandler.close()
+            rendered = template.render(credentials = self.jinjadict)
+            newfile= os.path.splitext(f)[0] + ".py"
+            ofh = open (newfile, 'w')
+            ofh.write(rendered)
+            ofh.close()
+
+
+
+
+
 
 #function to find the version in gmv_cmd
 
