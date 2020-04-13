@@ -2,6 +2,10 @@
 
 
 
+
+# gmvault-dmr: Patched to allow custom google client ids and keys to work around the recent problem where access is denied using oauth2
+The google_credentials.ini file or command-line parameters '--google-client-id= and --google-secret=' can be passed 
+
 Gmvault is a tool for backing up your gmail account and never lose email correspondence.
 Gmvault is open source and under GNU-AGPL-3.0.
 
