@@ -18,11 +18,12 @@
 
 import os
 from setuptools import setup
+import setuptools.command.build_py
 import distutils.cmd
 import distutils.log
 import subprocess
 import configparser
-from Jinja2 import Template
+from jinja2 import Template
 
 class AddClientID(distutils.cmd.Command):
     """Add in custom google client ID and secret"""
@@ -36,7 +37,7 @@ class AddClientID(distutils.cmd.Command):
     def initialize_options(self):
         self.google_client_id = None
         self.google_secret = None
-        self.google_credentials_file = "credentials.txt"
+        self.google_credentials_file = "google_credentials.ini"
 
     def finalize_options(self):
         pass
@@ -50,7 +51,6 @@ class AddClientID(distutils.cmd.Command):
             config.read(self.google_credentials_file)
             self.google_client_id = config['DEFAULT']['client_id']
             self.google_secret = config['DEFAULT']['secret']
-
             self.jinjadict = {
                 'google_client_id': self.google_client_id,
                 'google_secret': self.google_secret
@@ -97,7 +97,13 @@ if os.path.exists(README):
 else:
     long_description = 'Gmvault'
 
+class BuildWrapper(setuptools.command.build_py.build_py):
+    def run(self):
+        self.run_command('credential')
+        setuptools.command.build_py.build_py.run(self)
+
 setup(name='gmvault',
+      cmdclass={'credential': AddClientID, 'build_py': BuildWrapper},
       version=version,
       description=("Tool to backup and restore your Gmail emails at will. http://www.gmvault.org for more info"),
       long_description=long_description,
