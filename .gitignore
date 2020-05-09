@@ -11,4 +11,8 @@ dists/disstoolbox-dist/build/*
 .idea/*
 build/
 gmvault.egg-info/
-
+google_credentials.ini
+src/gmv/credential_utils.py
+src/gmv/gmvault_const.py
+.eggs/
+dist/

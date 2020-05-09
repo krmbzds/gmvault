@@ -102,6 +102,12 @@ class BuildWrapper(setuptools.command.build_py.build_py):
         self.run_command('credential')
         setuptools.command.build_py.build_py.run(self)
 
+
+APP = ['gmvault']
+DATA_FILES = []
+OPTIONS = {'argv_emulation': True}
+
+
 setup(name='gmvault',
       cmdclass={'credential': AddClientID, 'build_py': BuildWrapper},
       version=version,
@@ -124,5 +130,9 @@ setup(name='gmvault',
       package_data={'': ['release-note.txt']},
       include_package_data=True,
       #install_requires=['argparse', 'Logbook==0.4.1', 'IMAPClient==0.9.2','gdata==2.0.17']
-      install_requires=['argparse', 'Logbook==0.10.1', 'IMAPClient==0.13', 'chardet==2.3.0']
+      install_requires=['argparse', 'Logbook==0.10.1', 'IMAPClient==0.13', 'chardet==2.3.0'],
+      app=APP,
+      data_files=DATA_FILES,
+      options={'py2app': OPTIONS},
+      setup_requires = ['py2app']
       )
