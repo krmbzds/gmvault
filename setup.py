@@ -37,30 +37,40 @@ class AddClientID(distutils.cmd.Command):
     def initialize_options(self):
         self.google_client_id = None
         self.google_secret = None
-        self.google_credentials_file = "google_credentials.ini"
+        self.google_credentials_file = None
 
     def finalize_options(self):
-        pass
-
-    def run(self):
-        """Add in the client ids to files"""
-
         if self.google_credentials_file:
             assert os.path.exists(self.google_credentials_file), ('Credentials file %s does not exist', self.google_credentials_file)
+            if self.google_secret or self.google_client_id:
+                print("Warning: specifying a credentials file overrides a client_id or secret specificied on the commandline")
             config = configparser.ConfigParser()
             config.read(self.google_credentials_file)
             self.google_client_id = config['DEFAULT']['client_id']
             self.google_secret = config['DEFAULT']['secret']
-            self.jinjadict = {
-                'google_client_id': self.google_client_id,
-                'google_secret': self.google_secret
-            }
-        for f in ['src/gmv/credential_utils.tpy', 'src/gmv/gmvault_const.tpy']:
+            assert len(self.google_client_id) > 0, ('Client_id missing from credentials file %s', self.google_credentials_file)
+            assert len(self.google_secret) > 0, ('Secret missing from credentials file %s', self.google_credentials_file)
+        else:
+            assert len(self.google_client_id) > 0, 'Client_id not specified'
+            assert len(self.google_secret) > 0, 'Secret not specified or missing from credentials file'
+
+
+    def run(self):
+        """Add in the client ids to files"""
+
+        jinjadict = {
+            'google_client_id': self.google_client_id,
+            'google_secret': self.google_secret
+        }
+        template_files = ['src/gmv/credential_utils.t.py', 'src/gmv/gmvault_const.t.py']
+        if self.google_credentials_file is None:
+            template_files.append("google_credentials.t.ini")
+        for f in template_files:
             fhandler = open(f)
             template = Template(fhandler.read())
             fhandler.close()
-            rendered = template.render(credentials = self.jinjadict)
-            newfile= os.path.splitext(f)[0] + ".py"
+            rendered = template.render(credentials = jinjadict)
+            newfile= os.path.splitext(f)[0][0:-2] + os.path.splitext(f)[1]
             ofh = open (newfile, 'w')
             ofh.write(rendered)
             ofh.close()
