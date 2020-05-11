@@ -16,3 +16,4 @@ src/gmv/credential_utils.py
 src/gmv/gmvault_const.py
 .eggs/
 dist/
+google_credentials.bak

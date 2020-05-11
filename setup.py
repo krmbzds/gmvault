@@ -17,15 +17,17 @@
 """
 
 import os
-from setuptools import setup
-import setuptools.command.build_py
-import distutils.cmd
-import distutils.log
 import subprocess
 import configparser
+from distutils.command.build import build
+from setuptools import setup, Command
+from setuptools.command.install import install
+from setuptools.command.develop import develop
+from setuptools.command.build_py import build_py
 from jinja2 import Template
 
-class AddClientID(distutils.cmd.Command):
+#class Credential(distutils.cmd.Command):
+class Credential(Command):
     """Add in custom google client ID and secret"""
 
     description = "Insert user's own google client ID and secret"
@@ -50,6 +52,18 @@ class AddClientID(distutils.cmd.Command):
             self.google_secret = config['DEFAULT']['secret']
             assert len(self.google_client_id) > 0, ('Client_id missing from credentials file %s', self.google_credentials_file)
             assert len(self.google_secret) > 0, ('Secret missing from credentials file %s', self.google_credentials_file)
+        elif self.google_client_id is None and self.google_secret is None:
+            if os.path.exists("google_credentials.ini"):
+                print("Warning: No credentials file or parameters specified, using default existing file %s" % "google_credentials.ini")
+                self.google_credentials_file = "google_credentials.ini"
+                config = configparser.ConfigParser()
+                config.read(self.google_credentials_file)
+                self.google_client_id = config['DEFAULT']['client_id']
+                self.google_secret = config['DEFAULT']['secret']
+                assert len(self.google_client_id) > 0, ('Client_id missing from credentials file %s', self.google_credentials_file)
+                assert len(self.google_secret) > 0, ('Secret missing from credentials file %s', self.google_credentials_file)
+            else:
+                raise Exception("Error: No credentials file or parameters specified, and default 'google_credentials.ini' was not found")
         else:
             assert len(self.google_client_id) > 0, 'Client_id not specified'
             assert len(self.google_secret) > 0, 'Secret not specified or missing from credentials file'
@@ -64,7 +78,11 @@ class AddClientID(distutils.cmd.Command):
         }
         template_files = ['src/gmv/credential_utils.t.py', 'src/gmv/gmvault_const.t.py']
         if self.google_credentials_file is None:
-            template_files.append("google_credentials.t.ini")
+            if os.path.exists("google_credentials.ini"):
+                pass
+            else:
+                template_files.append("google_credentials.t.ini")
+                print("Writing passed parameters to default credentials file %s" % "google.credentials.ini")
         for f in template_files:
             fhandler = open(f)
             template = Template(fhandler.read())
@@ -76,9 +94,46 @@ class AddClientID(distutils.cmd.Command):
             ofh.close()
 
 
+# class BuildWrapper(build_py):
+#     def run(self):
+#         self.run_command('credential')
+#         super.run(self)
 
+class CommandMixin(object):
+    user_options = [
+        ('google-credentials-file=', None, 'Credentials file'),
+        ('google-client-id=', None, 'google-client-id'),
+        ('google-secret=', None, 'google-secret')]
 
+    def initialize_options(self):
+        super().initialize_options()
+        self.google_client_id = None
+        self.google_secret = None
+        self.google_credentials_file = None
 
+    def finalize_options(self):
+        super().finalize_options()
+
+    def run(self):
+        super().run()
+
+class InstallCommand(CommandMixin, install):
+    user_options = getattr(install, 'user_options', []) + CommandMixin.user_options
+
+class DevelopCommand(CommandMixin, develop):
+    user_options = getattr(develop, 'user_options', []) + CommandMixin.user_options
+
+class BuildPyCommand(CommandMixin, build_py):
+    user_options = getattr(build_py, 'user_options', []) + CommandMixin.user_options
+    def run(self):
+        self.run_command("credential")
+        super().run()
+
+class BuildCommand(CommandMixin, build):
+    user_options = getattr(build, 'user_options', []) + CommandMixin.user_options
+    def run(self):
+        self.run_command("credential")
+        super().run()
 
 #function to find the version in gmv_cmd
 
@@ -107,11 +162,6 @@ if os.path.exists(README):
 else:
     long_description = 'Gmvault'
 
-class BuildWrapper(setuptools.command.build_py.build_py):
-    def run(self):
-        self.run_command('credential')
-        setuptools.command.build_py.build_py.run(self)
-
 
 APP = ['gmvault']
 DATA_FILES = []
@@ -119,7 +169,11 @@ OPTIONS = {'argv_emulation': True}
 
 
 setup(name='gmvault',
-      cmdclass={'credential': AddClientID, 'build_py': BuildWrapper},
+      cmdclass={'credential': Credential,
+                'build_py': BuildPyCommand,
+                'build': BuildCommand,
+                'install': InstallCommand,
+                'develop': DevelopCommand},
       version=version,
       description=("Tool to backup and restore your Gmail emails at will. http://www.gmvault.org for more info"),
       long_description=long_description,
@@ -140,7 +194,8 @@ setup(name='gmvault',
       package_data={'': ['release-note.txt']},
       include_package_data=True,
       #install_requires=['argparse', 'Logbook==0.4.1', 'IMAPClient==0.9.2','gdata==2.0.17']
-      install_requires=['argparse', 'Logbook==0.10.1', 'IMAPClient==0.13', 'chardet==2.3.0'],
+      #install_requires=['argparse', 'Logbook==0.10.1', 'IMAPClient==0.13', 'chardet==2.3.0'],
+      install_requires=['argparse', 'Logbook>=0.10.1', 'IMAPClient>=0.13', 'chardet>=2.3.0'],
       app=APP,
       data_files=DATA_FILES,
       options={'py2app': OPTIONS},
