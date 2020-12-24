@@ -54,7 +54,7 @@ copy:
 
 Or map the volume locally, to begin with:
 
-    docker run --rm -ti -v $HOME/gmvault-db:/root/gmvault-db gmvault sync ...
+    docker run --rm -ti -v $HOME/gmvault-db:/root/gmvault-db gmvault sync -p --store-passwd email@example.com
 
 ## Install from PyPi
 
@@ -104,9 +104,4 @@ Will restore /backup/emails-db in newfoo.bar@gmail.com
 Use --resume or --restart to restart from the last fatal error and not reupload once more the already treated emails.
 
 $>gmvault restore newfoo.bar@gmail.com --restart
-
-
-
-
-
 
